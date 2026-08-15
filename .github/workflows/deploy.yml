@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allows you to manually trigger the pipeline from the GitHub UI
+  workflow_dispatch:
 
-# These permissions are strictly required for OIDC authentication to work
+# CULPRIT 2 FIX: This MUST be here for OIDC to work
 permissions:
   id-token: write 
   contents: read  
@@ -22,7 +22,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1 # Change this if your AWS account is in a different region
+          aws-region: us-east-1 
+          audience: sts.amazonaws.com # CULPRIT 3 FIX: Explicitly state the audience
 
       - name: Deploy CloudFormation Stack
         run: |
