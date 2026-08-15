@@ -1,0 +1,32 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows you to manually trigger the pipeline from the GitHub UI
+
+# These permissions are strictly required for OIDC authentication to work
+permissions:
+  id-token: write 
+  contents: read  
+
+jobs:
+  deploy-aws-infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1 # Change this if your AWS account is in a different region
+
+      - name: Deploy CloudFormation Stack
+        run: |
+          aws cloudformation deploy \
+            --template-file infrastructure.yml \
+            --stack-name data-platform-storage-stack \
+            --capabilities CAPABILITY_NAMED_IAM
