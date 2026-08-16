@@ -6,11 +6,6 @@ on:
       - main
   workflow_dispatch:
 
-# CULPRIT 2 FIX: This MUST be here for OIDC to work
-permissions:
-  id-token: write 
-  contents: read  
-
 jobs:
   deploy-aws-infrastructure:
     runs-on: ubuntu-latest
@@ -21,9 +16,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1 
-          audience: sts.amazonaws.com # CULPRIT 3 FIX: Explicitly state the audience
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
       - name: Deploy CloudFormation Stack
         run: |
