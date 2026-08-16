@@ -21,4 +21,38 @@ Resources:
     Properties:
       BucketName: !Sub 'data-platform-gold-${AWS::AccountId}'
       VersioningConfiguration:
-        Status: Enabled
+        Status: Enabled# --- IAM GROUPS & USERS ---
+  
+  DETeamGroup:
+    Type: AWS::IAM::Group
+
+  DatabricksServiceUser:
+    Type: AWS::IAM::User
+    Properties:
+      Groups:
+        - !Ref DETeamGroup
+
+  # --- IAM POLICIES ---
+
+  DETeamS3Policy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DETeamS3ReadWrite
+      Groups:
+        - !Ref DETeamGroup
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+            Resource:
+              - !GetAtt RawDataBucket.Arn
+              - !Sub "${RawDataBucket.Arn}/*"
+              - !GetAtt SilverDataBucket.Arn
+              - !Sub "${SilverDataBucket.Arn}/*"
+              - !GetAtt GoldDataBucket.Arn
+              - !Sub "${GoldDataBucket.Arn}/*"
