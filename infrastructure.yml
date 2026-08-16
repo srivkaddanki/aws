@@ -1,7 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'AWS Data Platform SRE Simulator: Medallion S3 Storage and IAM Security'
+Description: 'AWS Data Platform SRE Simulator: Medallion S3 Storage and Full IAM Security'
 
 Resources:
+  # ==========================================
+  # 1. STORAGE LAYER (S3 Buckets)
+  # ==========================================
   RawDataBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -23,20 +26,61 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
 
-  # --- IAM GROUPS & USERS ---
-  
+  # ==========================================
+  # 2. SECURITY LAYER: GROUPS
+  # ==========================================
   DETeamGroup:
     Type: AWS::IAM::Group
 
+  DataAnalystGroup:
+    Type: AWS::IAM::Group
+
+  BusinessAnalystGroup:
+    Type: AWS::IAM::Group
+
+  # ==========================================
+  # 3. SECURITY LAYER: USERS (2 per group)
+  # ==========================================
   DatabricksServiceUser:
     Type: AWS::IAM::User
     Properties:
       Groups:
         - !Ref DETeamGroup
 
-  # --- IAM POLICIES ---
+  DataEngineerAlice:
+    Type: AWS::IAM::User
+    Properties:
+      Groups:
+        - !Ref DETeamGroup
 
-  DETeamS3Policy:
+  AnalystBob:
+    Type: AWS::IAM::User
+    Properties:
+      Groups:
+        - !Ref DataAnalystGroup
+
+  AnalystCharlie:
+    Type: AWS::IAM::User
+    Properties:
+      Groups:
+        - !Ref DataAnalystGroup
+
+  BIServiceUser:
+    Type: AWS::IAM::User
+    Properties:
+      Groups:
+        - !Ref BusinessAnalystGroup
+
+  BIUserDave:
+    Type: AWS::IAM::User
+    Properties:
+      Groups:
+        - !Ref BusinessAnalystGroup
+
+  # ==========================================
+  # 4. SECURITY LAYER: POLICIES
+  # ==========================================
+  DETeamPolicy:
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: DETeamS3ReadWrite
@@ -56,5 +100,41 @@ Resources:
               - !Sub "${RawDataBucket.Arn}/*"
               - !GetAtt SilverDataBucket.Arn
               - !Sub "${SilverDataBucket.Arn}/*"
+              - !GetAtt GoldDataBucket.Arn
+              - !Sub "${GoldDataBucket.Arn}/*"
+
+  DataAnalystPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DataAnalystS3ReadOnly
+      Groups:
+        - !Ref DataAnalystGroup
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetObject
+            Resource:
+              - !GetAtt SilverDataBucket.Arn
+              - !Sub "${SilverDataBucket.Arn}/*"
+              - !GetAtt GoldDataBucket.Arn
+              - !Sub "${GoldDataBucket.Arn}/*"
+
+  BusinessAnalystPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: BusinessAnalystS3ReadOnly
+      Groups:
+        - !Ref BusinessAnalystGroup
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetObject
+            Resource:
               - !GetAtt GoldDataBucket.Arn
               - !Sub "${GoldDataBucket.Arn}/*"
