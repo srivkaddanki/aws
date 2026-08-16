@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'AWS Data Platform SRE Simulator: Medallion S3 Storage and Full IAM Security'
+Description: 'AWS Data Platform SRE Simulator: Medallion S3 Storage, IAM Security, RDS, and Lambda'
 
 Resources:
   # ==========================================
@@ -92,7 +92,7 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          # NEW: Required so the AWS S3 Web Console doesn't crash on load
+          # Required so the AWS S3 Web Console doesn't crash on load
           - Effect: Allow
             Action:
               - s3:ListAllMyBuckets
@@ -148,3 +148,80 @@ Resources:
             Resource:
               - !GetAtt GoldDataBucket.Arn
               - !Sub "${GoldDataBucket.Arn}/*"
+
+  # ==========================================
+  # 5. DATABASE & SERVING LAYER (RDS)
+  # ==========================================
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow PostgreSQL access from anywhere (for Databricks CE)
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 0.0.0.0/0
+
+  PostgresDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: postgres
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      DBInstanceIdentifier: data-platform-gold-db
+      MasterUsername: dbadmin
+      MasterUserPassword: "DataPlatformAdmin123!"
+      PubliclyAccessible: true
+      VPCSecurityGroups:
+        - !GetAtt RDSSecurityGroup.GroupId
+      SkipFinalSnapshot: true
+
+  # ==========================================
+  # 6. EVENT-DRIVEN AUTOMATION (Lambda)
+  # ==========================================
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: LambdaS3ReadAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub "${GoldDataBucket.Arn}/*"
+
+  GoldToRDSFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: data-platform-gold-to-rds
+      Runtime: python3.10
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import json
+          import urllib.parse
+          import boto3
+
+          def lambda_handler(event, context):
+              print("Received event: " + json.dumps(event))
+              bucket = event['Records'][0]['s3']['bucket']['name']
+              key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
+              print(f"✅ SUCCESS! File {key} dropped into {bucket}.")
+              print("Ready to execute Postgres INSERT logic.")
+              
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps('S3 Event captured successfully!')
+              }
