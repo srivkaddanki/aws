@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'AWS Data Platform SRE Simulator: Medallion S3 Storage'
+Description: 'AWS Data Platform SRE Simulator: Medallion S3 Storage and IAM Security'
 
 Resources:
   RawDataBucket:
@@ -21,7 +21,9 @@ Resources:
     Properties:
       BucketName: !Sub 'data-platform-gold-${AWS::AccountId}'
       VersioningConfiguration:
-        Status: Enabled# --- IAM GROUPS & USERS ---
+        Status: Enabled
+
+  # --- IAM GROUPS & USERS ---
   
   DETeamGroup:
     Type: AWS::IAM::Group
