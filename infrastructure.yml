@@ -52,6 +52,9 @@ Resources:
     Properties:
       Groups:
         - !Ref DETeamGroup
+      LoginProfile:
+        Password: "TemporaryPassword123!"
+        PasswordResetRequired: true
 
   AnalystBob:
     Type: AWS::IAM::User
@@ -89,6 +92,13 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
+          # NEW: Required so the AWS S3 Web Console doesn't crash on load
+          - Effect: Allow
+            Action:
+              - s3:ListAllMyBuckets
+              - s3:GetBucketLocation
+            Resource: "*"
+          # Keep the strict Read/Write limits on the actual Medallion buckets
           - Effect: Allow
             Action:
               - s3:ListBucket
