@@ -39,7 +39,7 @@ Resources:
     Type: AWS::IAM::Group
 
   # ==========================================
-  # 3. SECURITY LAYER: USERS (2 per group)
+  # 3. SECURITY LAYER: USERS
   # ==========================================
   DatabricksServiceUser:
     Type: AWS::IAM::User
@@ -80,7 +80,7 @@ Resources:
   # ==========================================
   # 4. SECURITY LAYER: POLICIES
   # ==========================================
-  DETeamPolicy:
+  DETeamS3Policy:
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: DETeamS3ReadWrite
