@@ -163,6 +163,8 @@ Resources:
 
   PostgresDB:
     Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       Engine: postgres
       DBInstanceClass: db.t3.micro
@@ -174,7 +176,6 @@ Resources:
       PubliclyAccessible: true
       VPCSecurityGroups:
         - !GetAtt RDSSecurityGroup.GroupId
-      SkipFinalSnapshot: true
 
   # ==========================================
   # 6. EVENT-DRIVEN AUTOMATION (Lambda)
