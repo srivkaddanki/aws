@@ -199,7 +199,7 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: "Allow"
-              - Action:
+                Action:
                   - "s3:GetObject"
                 Resource:
                   - !Sub "${GoldDataBucket.Arn}/*"
@@ -208,7 +208,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: "data-platform-gold-to-rds"
-      Runtime: "python3.10"
+      Runtime: "python3.12"
       Handler: "index.lambda_handler"
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 60
