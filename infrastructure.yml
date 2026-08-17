@@ -8,23 +8,23 @@ Resources:
   RawDataBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'data-platform-raw-${AWS::AccountId}'
+      BucketName: !Sub "data-platform-raw-${AWS::AccountId}"
       VersioningConfiguration:
-        Status: Enabled
+        Status: "Enabled"
 
   SilverDataBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'data-platform-silver-${AWS::AccountId}'
+      BucketName: !Sub "data-platform-silver-${AWS::AccountId}"
       VersioningConfiguration:
-        Status: Enabled
+        Status: "Enabled"
 
   GoldDataBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'data-platform-gold-${AWS::AccountId}'
+      BucketName: !Sub "data-platform-gold-${AWS::AccountId}"
       VersioningConfiguration:
-        Status: Enabled
+        Status: "Enabled"
 
   # ==========================================
   # 2. SECURITY LAYER: GROUPS
@@ -86,25 +86,24 @@ Resources:
   DETeamS3Policy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DETeamS3ReadWrite
+      PolicyName: "DETeamS3ReadWrite"
       Groups:
         - !Ref DETeamGroup
       PolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
-          # Required so the AWS S3 Web Console doesn't crash on load
-          - Effect: Allow
+          - Effect: "Allow"
             Action:
-              - s3:ListAllMyBuckets
-              - s3:GetBucketLocation
-            Resource: "*"
-          # Keep the strict Read/Write limits on the actual Medallion buckets
-          - Effect: Allow
+              - "s3:ListAllMyBuckets"
+              - "s3:GetBucketLocation"
+            Resource:
+              - "*"
+          - Effect: "Allow"
             Action:
-              - s3:ListBucket
-              - s3:GetObject
-              - s3:PutObject
-              - s3:DeleteObject
+              - "s3:ListBucket"
+              - "s3:GetObject"
+              - "s3:PutObject"
+              - "s3:DeleteObject"
             Resource:
               - !GetAtt RawDataBucket.Arn
               - !Sub "${RawDataBucket.Arn}/*"
@@ -116,16 +115,16 @@ Resources:
   DataAnalystPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DataAnalystS3ReadOnly
+      PolicyName: "DataAnalystS3ReadOnly"
       Groups:
         - !Ref DataAnalystGroup
       PolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
-          - Effect: Allow
+          - Effect: "Allow"
             Action:
-              - s3:ListBucket
-              - s3:GetObject
+              - "s3:ListBucket"
+              - "s3:GetObject"
             Resource:
               - !GetAtt SilverDataBucket.Arn
               - !Sub "${SilverDataBucket.Arn}/*"
@@ -135,16 +134,16 @@ Resources:
   BusinessAnalystPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: BusinessAnalystS3ReadOnly
+      PolicyName: "BusinessAnalystS3ReadOnly"
       Groups:
         - !Ref BusinessAnalystGroup
       PolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
-          - Effect: Allow
+          - Effect: "Allow"
             Action:
-              - s3:ListBucket
-              - s3:GetObject
+              - "s3:ListBucket"
+              - "s3:GetObject"
             Resource:
               - !GetAtt GoldDataBucket.Arn
               - !Sub "${GoldDataBucket.Arn}/*"
@@ -155,24 +154,23 @@ Resources:
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: 'Allow PostgreSQL access from anywhere (for Databricks CE)'
+      GroupDescription: "Allow PostgreSQL access from anywhere"
       SecurityGroupIngress:
-        - IpProtocol: 'tcp'
+        - IpProtocol: "tcp"
           FromPort: 5432
           ToPort: 5432
-          CidrIp: '0.0.0.0/0'
+          CidrIp: "0.0.0.0/0"
 
   PostgresDB:
     Type: AWS::RDS::DBInstance
     Properties:
-      Engine: 'postgres'
-      DBInstanceClass: 'db.t3.micro'
-      AllocatedStorage: '20'
-      StorageType: 'gp3'
-      DBInstanceIdentifier: 'data-platform-gold-db'
-      MasterUsername: 'dbadmin'
-
-      MasterUserPassword: 'DataPlatformAdmin123'
+      Engine: "postgres"
+      DBInstanceClass: "db.t3.micro"
+      AllocatedStorage: 20
+      StorageType: "gp2"
+      DBInstanceIdentifier: "data-platform-gold-db"
+      MasterUsername: "dbadmin"
+      MasterUserPassword: "DataPlatformAdmin123"
       PubliclyAccessible: true
       VPCSecurityGroups:
         - !GetAtt RDSSecurityGroup.GroupId
@@ -185,45 +183,39 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
-          - Effect: 'Allow'
+          - Effect: "Allow"
             Principal:
-              Service: 'lambda.amazonaws.com'
-            Action: 'sts:AssumeRole'
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
       ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
       Policies:
-        - PolicyName: 'LambdaS3ReadAccess'
+        - PolicyName: "LambdaS3ReadAccess"
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
-              - Effect: 'Allow'
-                Action: 
-                  - 's3:GetObject'
-                Resource: !Sub "${GoldDataBucket.Arn}/*"
+              - Effect: "Allow"
+              - Action:
+                  - "s3:GetObject"
+                Resource:
+                  - !Sub "${GoldDataBucket.Arn}/*"
 
   GoldToRDSFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: 'data-platform-gold-to-rds'
-      Runtime: 'python3.12'
-      Handler: 'index.lambda_handler'
+      FunctionName: "data-platform-gold-to-rds"
+      Runtime: "python3.10"
+      Handler: "index.lambda_handler"
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 60
       Code:
         ZipFile: |
           import json
-          import urllib.parse
 
           def lambda_handler(event, context):
-              print("Received event: " + json.dumps(event))
-              bucket = event['Records'][0]['s3']['bucket']['name']
-              key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
-              print(f"✅ SUCCESS! File {key} dropped into {bucket}.")
-              print("Ready to execute Postgres INSERT logic.")
-              
-              return {
-                  'statusCode': 200,
-                  'body': json.dumps('S3 Event captured successfully!')
-              }
+              print("S3 Event received!")
+              return {"statusCode": 200, "body": "Success"}
